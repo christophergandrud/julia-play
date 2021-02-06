@@ -14,7 +14,12 @@ end
 md" 
 # Julia implementation of Vincent's \"Making Sense of Sensitivity\"
 
+Christopher Gandrud,
+2021-02-06
+
 I want to sharpen my Julia language skills. So, this notebook is me replicating Vincent Arel-Bundock's really nice blog post on [Making Sense of Sensitivity: Extending Omitted Variable Bias](http://arelbundock.com/posts/robustness_values/) in Julia.
+
+A lot of the text is directly from Vincet's original post, reproduced by me as a way of taking notes while I played around.
 "
 
 # ╔═╡ f1ab12da-6573-11eb-1043-95d1f6de5644
@@ -22,13 +27,13 @@ md"
 
 ## Omitted variable bias definition for simple linear regression
 
-We have a true model:
+Imagine, we have a true model:
 
 ``
 Y = \tau D + X\beta + \gamma Z + \epsilon 
 ``
 
-It's well known that ommitted variable bias for the linear model is given by:
+Omitted variable bias for the linear model is given by:
 
 ``
 \hat{\tau}_{r} = \hat{\tau} + \hat{\gamma}\hat{\delta}
@@ -79,7 +84,7 @@ end
 
 # ╔═╡ 412b76d2-65fc-11eb-2940-ab253f3969e5
 md"
-> **Julia play notes:** It was pretty straightforward create convert Vincent's R simulation into Julia. The one thing that tripped me up was simulating `D`. Julia's `rand` and `Binomial` functions are not vectorised. So, when I wanted to pass a vector (a one dimensional array) of success probabilities to `Binomial` I got an error `MethodError: no method matching Binomial(::Int64, ::Array{Int64,1})`. Ultimately the solution is pretty simple--\"broadcast\" `Binomial` and `rand` with `.` across the vector. I did really like being able to use the greek letters from the formula in the text to name the variables in the code. Improves the code readability. 
+> **Julia play notes:** It was pretty straightforward to convert Vincent's R simulation into Julia. The one thing that tripped me up was simulating values for `D`. Julia's `rand` and `Binomial` functions are not vectorised. So, when I wanted to pass a vector (a one-dimensional array) of success probabilities to `Binomial`, I got an error `MethodError: no method matching Binomial(::Int64, ::Array{Int64,1})`. The solution was pretty simple--\"broadcast\" `Binomial` and `rand` with the [Dot syntax](https://docs.julialang.org/en/v1/manual/functions/#man-vectorized) (`.`) across the vector. On the plus side, I really like being able to use the greek letters from the formula in the text to name the variables in the code. Improves the code readability. 
 
 "
 
@@ -104,7 +109,7 @@ To answer this question, they reparameterise the bias in terms of partial ``R^2`
 
 where ``R^2_{Y \sim Z|D,X}`` and so on are partial ``R^2`` values.
 
-They pose a more practical version of the sensitivity analysis that reports a single \"robustness value\". This value is based on considering a critical case where the strength of the impact of the confounders on the outcome (effect of ``Z`` on ``Y``) and the strength of the imbalance (effect of ``Z`` on ``D``) are equal (``\gamma = \delta``). The robustness value the derive from this case is:
+They pose a more practical version of the sensitivity analysis that reports a single \"robustness value\". This value is based on considering a critical case where the strength of the impact of the confounders on the outcome (effect of ``Z`` on ``Y``) and the strength of the imbalance (effect of ``Z`` on ``D``) are equal (``\gamma = \delta``). The robustness value they derive from this case is:
 
 ``
 RV_q = \frac{1}{2}\{\sqrt{(f^4_q + 4f^2_q) - f^2_q}\}
@@ -164,7 +169,13 @@ The interpretation of this robustness value is that confounders that explain abo
 
 # ╔═╡ 05b51af6-66b3-11eb-060f-455f3efc5466
 md"
-> **Julia play notes:** Overall the conversion from Vincent's R to Julia code was straightforward. However, two things tripped me up. First,to extract the t-value I needed to learn how to \"break into\" the regression model object. This required a bit of digging. Julia's `coeftable` is similar to R's `summary` function in that it returns the key model summaries. It returns 3 arrays with the parameter estimates (`cols`), parameter names (`colnms`), and variable names (`rownms`). I then needed to `findfirst` the row of the treatment estimates and the t-value column. Notice that these statements contains [anonymous functions](https://docs.julialang.org/en/v1/manual/functions/#man-anonymous-functions); throwaway functions declared with `->`. Using `findfirst` I could programatically find the treatment's t-value from the `cols` array. Note that I finally needed to extract the scalar value with a final `[1]`, otherwise there were problems with finding the absolute value (`abs`). Second, I wanted to fully use Julia's function type checking ability, e.g. `treatment::String` ensures that the `treatment` argument value is a `String`. To do this (I think) I need declare that the arguments are [\"keyword\" arguments](https://docs.julialang.org/en/v1/manual/functions/#Keyword-Arguments) rather than \"positional\" arguments. Keyword arguments are declared by placing them after a semi-colon `;`.  
+> **Julia play notes:** Overall the conversion from Vincent's R code to Julia was straightforward. However, two things tripped me up. First, to extract the t-value I needed to learn how to \"break into\" the regression model object. This required a bit of digging. Julia's `coeftable` is similar to R's `summary` function in that it returns the key model summaries. It returns 3 arrays with the parameter estimates (`cols`), parameter names (`colnms`), and variable names (`rownms`). I then needed to `findfirst` the row of the treatment estimates and the t-value column. Notice that these statements contains [anonymous functions](https://docs.julialang.org/en/v1/manual/functions/#man-anonymous-functions); throwaway functions declared with `->`. Using `findfirst` I could programatically find the treatment's t-value from the `cols` array. Note that I finally needed to extract the scalar value with a final `[1]`, otherwise there were problems with finding the absolute value (`abs`). Second, for practice I wanted to fully use Julia's function type checking ability, e.g. `treatment::String` ensures that the `treatment` argument value is a `String`. To do this (I think) I need declare that the arguments are [\"keyword\" arguments](https://docs.julialang.org/en/v1/manual/functions/#Keyword-Arguments) rather than \"positional\" arguments. Keyword arguments are declared by placing them after a semi-colon `;`.  
+
+"
+
+# ╔═╡ 6b26ccdc-6849-11eb-100a-5fb61eeb6c92
+md"
+Vincent ends his post with a nice demonstration of a sensitivity analysis using Cinelli, Ferwerda, and Hazlett's [sensemakr](https://cran.r-project.org/web/packages/sensemakr/) R package (see [useR tutorial](https://www.youtube.com/watch?v=p3dfHj6ki68)). Well, this doesn't exist for Julia. Maybe if I have some spare time I'll play around with working on that.
 
 "
 
@@ -179,3 +190,4 @@ md"
 # ╠═57c7f880-66b4-11eb-2c18-c3d0b0144050
 # ╟─416962a6-66b7-11eb-0d72-efbaaf02f293
 # ╟─05b51af6-66b3-11eb-060f-455f3efc5466
+# ╟─6b26ccdc-6849-11eb-100a-5fb61eeb6c92
