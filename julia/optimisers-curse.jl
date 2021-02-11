@@ -23,7 +23,7 @@ Smith and Winkler demonstrate that even with unbiased estimates of an investment
 
 Both of these findings ring true to the anecdata I have and inform an important [stylised fact](https://en.wikipedia.org/wiki/Stylized_fact): 
 
->the actual **direct** impact of a **particular** decision is less than we expect.
+>the actual **direct** impact of a **particular** decision is usually less than we expect.
 
 
 The paper's provide some practical correctives. E.g. Smith and Winkler advocate using prior information to shrink the expected value estimates. 
@@ -32,24 +32,31 @@ However, there are additional issues that are easy to lose site of
 
 - non-stationarities
 
-- fatter tail distributions
+- fatter tail distributions partially discoverable with domain knowledged
 
 and their interaction with the
 
-- cumulative value of repeated investments
+- cumulative value of repeated investments.
 
 
 Furthermore, Berman and Heller formalise a relationship between expected value and team productivity that many managers are probably familiar with. If the expected value of team members' work is high, they will be more productive. Not only could this increase the expected value of an investment, once we consider production costs, but it could positively impact the ability of a firm to adjust strategy to non-stationarities and find investments with unusually high returns.
 
+
+All of this leads to a key question:
+
+> How do you know if you are in the world of the optimiser's curse or building towards a fat tail return?
+
+
+"
+
+# ╔═╡ 0ddc8008-6af9-11eb-3579-1d01d30bdca4
+md"
 
 ## Problem
 
 A firm considers multiple alternative investments. It want's to choose the investment that maximises its return. 
 
 "
-
-# ╔═╡ 0ddc8008-6af9-11eb-3579-1d01d30bdca4
-
 
 # ╔═╡ Cell order:
 # ╠═cbeafb1c-6aa2-11eb-19e5-1544e0677bcd
