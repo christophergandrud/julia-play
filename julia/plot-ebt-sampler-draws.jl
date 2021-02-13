@@ -1,8 +1,6 @@
 # Plot draws from EBT Sampler
 
-using StatsBase, Plots
-
-
+using StatsBase, Plots, Threads
 
 """
     ebt_sampler(total_questions::Int = 310)
@@ -23,8 +21,16 @@ function ebt_sampler(total_questions::Int = 310)
 end
 
 
-@time samps = [ebt_sampler() for _ in 1:1_000_000]
-
+Threads.@threads samps = [ebt_sampler() for _ in 1:1_000_000]
 samps = collect(Iterators.flatten(samps))
 
 histogram(samps)
+
+
+
+begin
+	samps_multi_threaded = zeros(Int, 0)
+	Threads.@threads for _ in 1:1_000_000
+		append!(samps_multi_threaded, ebt_sampler())
+	end
+end
