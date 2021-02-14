@@ -21,7 +21,7 @@ md"
 
 ## Example
 
-Right now I'm studying for something called the *Deutscher Einbürgerungstest*. Each test is made of of 30 questions from a [test set](http://oet.bamf.de/pls/oetut/f?p=514:1:329473569276328:::::) of 310 questions. I want to study be creating practice tests of randomly selected questions. Many questions in the test set are testing the same material, just with different wording. These questions are bunched together in the test set. So, to create practice tests with consistently good coverage over the questinos, I want a stratified random sampling procedure. 
+Right now I'm studying for something called the *Deutscher Einbürgerungstest*. When I take the test, it will have 30 questions from a [test set](http://oet.bamf.de/pls/oetut/f?p=514:1:329473569276328:::::) of 310 ordered questions. I want to study by creating practice tests of randomly selected questions. Many questions in the test set are testing the same material, just with different wording. These questions are bunched together in the test set. So, to create practice tests with consistently good coverage over the questinos, I want a stratified random sampling procedure. 
 
 Here is my algorithm:
 "
@@ -60,13 +60,13 @@ x = ebt_sampler()
 md"
 Looks good. But I want to make certain that I am randomly sampling the all of the questions with known and equal probability. Who knows, maybe I didn't write the algorithm correctly.
 
-To validate this, I could take lots of samples and then make a histogram of the draws. This should look like a flat bar if I wrote the algorithm correctly.
+To validate this, I could take lots of samples and then make a histogram of the draws. This should look like a flat bar--each question was drawn with the same frequency--if I wrote the algorithm correctly.
 
 This is where we can use multi-threading (we could also have done it in the sampler function, but given how few samples it runs, the overhead of setting up the multi-threading would almost certainly outweigh the reduced computation time).
 
 ### Single threaded
 
-Here is 1 million samples drawn sequentially on a single CPU: 
+Here are 1 million samples drawn sequentially on a single CPU: 
 "
 
 # ╔═╡ 432da8e8-6dc6-11eb-1fe2-179a5a92e07b
@@ -99,9 +99,9 @@ end
 md"
 Using two rather than one core sped up the operation about 2x (~650ms vs. 1.5 seconds). About what we would expect.
 
-Note that I needed to explicitly initialise the `samps_multi` object in order to take advantage of the `@threads` [macro](https://docs.julialang.org/en/v1/manual/metaprogramming/). This is because the macro only works (at least in Julia 1.5.3) on `for` loops where the `for` is directly after the macro call. To do this, I needed to create the `samps_multi` object with `undef` (undefined) types and length `n` (the number of samples). Each sample then knows where to put its output. The first time I tried this, I didn't have the explicit indexing and it crashed the notebook as each process likely tried to access the same data at the same time.
+Note that I needed to explicitly initialise the `samps_multi` object in order to take advantage of the `@threads` [macro](https://docs.julialang.org/en/v1/manual/metaprogramming/). This is because the macro only works (at least as far as I can tell in Julia 1.5.3) on `for` loops where the `for` is directly after the macro call. To do this, I needed to create the `samps_multi` object with `undef` (undefined) types and length `n` (the number of samples). Each sample then knows where to put its output. The first time I tried this, I didn't have the explicit indexing and it crashed the notebook as each process likely tried to access the same data at the same time.
 
-I'm sure there are optimisations that could be done. In paricular, explicitly defining the type of each element of `samps_multi`, rather than using `undef` and having Julia define them at runtime could be a good way to go.
+I'm sure I could optimise this code. In paricular, I could explicitly define the type of each element of `samps_multi`, rather than using `undef` and having Julia define them at runtime.
 
 Finally, let's collapse all of these arrays and make a histogram to see if each question has an equal probability of being sampled:
 "
@@ -111,6 +111,11 @@ samps_multi_collected = collect(Iterators.flatten(samps_multi))
 
 # ╔═╡ efc2caba-6dc7-11eb-1156-4333745e9575
 histogram(samps_multi_collected)
+
+# ╔═╡ 15457c18-6e0d-11eb-1bad-b19ad9331eb5
+md"
+Looks good.
+"
 
 # ╔═╡ d909212e-6cfb-11eb-0844-49a2bc156db0
 
@@ -137,6 +142,7 @@ histogram(samps_multi_collected)
 # ╟─68ca5b14-6dc6-11eb-0cb9-216e9021daad
 # ╠═d62f72f6-6dc7-11eb-14e4-916ede86c49f
 # ╠═efc2caba-6dc7-11eb-1156-4333745e9575
+# ╟─15457c18-6e0d-11eb-1bad-b19ad9331eb5
 # ╟─d909212e-6cfb-11eb-0844-49a2bc156db0
 # ╟─adc118c6-6cfd-11eb-0543-2f509af688f0
 # ╟─5cf4891a-6cfc-11eb-074b-55d8e460319e
