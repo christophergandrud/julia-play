@@ -81,7 +81,6 @@ n = 100
 
 # ╔═╡ a506ec4c-6cfb-11eb-3235-69f825519bdc
 md"
-100 samples took about 660 ``\mu``s.
 
 Note: I took so few samples because of the (so far only one I've found) major downside of Pluto notebooks. Because it is reactive, every time I open the notebook it runs all of the samples. This is a lot when using BenchmarkTools to assess the speed of the implementations as it is taking samples of samples. The time adds up quickly.
 
@@ -136,7 +135,7 @@ end
 # ╔═╡ 25d0c942-7064-11eb-3a43-0dadd264400b
 md"
 
-Some interesting results from the test. The median time for the `@threads` approach was the fastest, but both it and the `@spawn` with comprehensions approaches were orders of magnitude faster. The maximum `@threads` time was about half the maximum single-threaded approach. Surprisingly, `@spawn` had an almost 8x faster maximum time.  
+Some interesting results from the test. The median time for the `@threads` approach was the fastest, but both it and the `@spawn` with comprehensions approaches were orders of magnitude faster. The maximum `@threads` time was about half the maximum single-threaded approach. Surprisingly, `@spawn` has a much lower maximum time.  
 
 "
 
@@ -195,7 +194,7 @@ Looks pretty good. With more samples (I tried outside of the notebook) it is wha
 # ╟─68ca5b14-6dc6-11eb-0cb9-216e9021daad
 # ╠═d62f72f6-6dc7-11eb-14e4-916ede86c49f
 # ╠═efc2caba-6dc7-11eb-1156-4333745e9575
-# ╠═15457c18-6e0d-11eb-1bad-b19ad9331eb5
+# ╟─15457c18-6e0d-11eb-1bad-b19ad9331eb5
 # ╟─d909212e-6cfb-11eb-0844-49a2bc156db0
 # ╟─adc118c6-6cfd-11eb-0543-2f509af688f0
 # ╟─5cf4891a-6cfc-11eb-074b-55d8e460319e
