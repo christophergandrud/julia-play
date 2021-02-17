@@ -7,17 +7,22 @@ using InteractiveUtils
 # ╔═╡ 7da07040-6cfa-11eb-34f7-0b3ab55b2bce
 using BenchmarkTools, StatsPlots, StatsBase
 
+# ╔═╡ 25dca468-70e8-11eb-36c1-e39dc55de9e4
+using Lazy
+
 # ╔═╡ 5552d3f0-6cf8-11eb-20a6-ed5780dc79b0
 md"
 # Julia muliti-threaded
 
 Christopher Gandrud, 2021-02-17
 
-Julia was created with [distributed computing in mind](https://docs.julialang.org/en/v1.0/manual/parallel-computing/). This notebook started out as a simple illustration of the `Threads.@threads for`  [macro](https://docs.julialang.org/en/v1/manual/metaprogramming/). [That worked ok](https://github.com/christophergandrud/julia-play/blob/c93570107280b918e70d70be0240c95d7414212c/julia/multithread-example.jl), but as expected when the documentation says that something is 'experimental' and 'not fully thread-safe', that was easy to hard mess up. The `@threads` macro only works with for loops written in a particular way. As far I can tell, you can't use `@threads` with for loops in [comprehensions](https://docs.julialang.org/en/v1/manual/arrays/#man-comprehensions). This is a real shame because comprehensions take care of messy work of constructing arrays from the looped elements. 
+Julia was created with [distributed computing in mind](https://docs.julialang.org/en/v1.0/manual/parallel-computing/). To explore practice these capabilities, I started this notebook started as a simple illustration of the `Threads.@threads for`  [macro](https://docs.julialang.org/en/v1/manual/metaprogramming/). [That worked ok](https://github.com/christophergandrud/julia-play/blob/c93570107280b918e70d70be0240c95d7414212c/julia/multithread-example.jl).
 
-It seems like the Julia developers are also [moving away](https://www.oxinabox.net/2021/02/13/Julia-1.6-what-has-changed-since-1.0.html#threading) from `@threads` to a more general purpose, and frankly amazing, `Threads.@spawn`. The promise is that you can stick that macro in front of an operation and Julia will just figure out how to distribute it. It works really well, once I figured out one step I was forgetting.    
+However, as expected when the documentation says that something is 'experimental' and 'not fully thread-safe', that approach was easy to mess up in a way that crashed things. The `@threads` macro is also limited in that it only works with `for` loops written in a particular way. As far I can tell, you can't use `@threads` with for loops in [comprehensions](https://docs.julialang.org/en/v1/manual/arrays/#man-comprehensions). This is a real shame because comprehensions take care of the tedious work of constructing arrays from the looped elements. 
 
-So here is a more involved introduction to multi-threading (on a single computer) in Julia than I expected.
+It seems like the Julia developers are also [moving away](https://www.oxinabox.net/2021/02/13/Julia-1.6-what-has-changed-since-1.0.html#threading) from `@threads` to a more general purpose `Threads.@spawn` macro. The promise is that you can stick this macro in front of an operation and Julia will just figure out how to distribute it.     
+
+Let's see how to implement the two approaches.
 "
 
 # ╔═╡ db44d7ce-6cf8-11eb-2e67-57b7ca7ad626
@@ -25,9 +30,9 @@ md"
 
 ## Example
 
-Right now I'm studying for something called the *Deutscher Einbürgerungstest*. When I take the test, it will have 30 questions from a [test set](http://oet.bamf.de/pls/oetut/f?p=514:1:329473569276328:::::) of 310 ordered questions. I want to study by creating practice tests of randomly selected questions. Many questions in the test set are testing the same material, just with different wording. These questions are bunched together in the test set. So, to create practice tests with consistently good coverage over the questinos, I want a stratified random sampling procedure. 
+Right now I'm studying for something called the *Deutscher Einbürgerungstest*. The test has 33 questions from a [test set](http://oet.bamf.de/pls/oetut/f?p=514:1:329473569276328:::::) of 310 ordered questions. I want to study by creating practice tests of randomly selected questions. Many questions in the test set are testing the same material, just with different wording. These questions are bunched together in the test set. So, to create practice tests with consistently good coverage over the questinos, I want a stratified random sampling procedure. 
 
-Here is my algorithm:
+Here's my algorithm:
 "
 
 # ╔═╡ 789c2c92-6cfa-11eb-2707-0db43a21db14
@@ -43,7 +48,11 @@ function ebt_sampler(total_questions::Int = 310)
     out = zeros(Int, 0)
     while u < total_questions
          i += 10; u += 10
-         x = StatsBase.sample(i:u)
+         if u == total_questions
+            x = StatsBase.sample(i:u, 3, replace = false)
+         else
+            x = StatsBase.sample(i:u)
+         end
          out = append!(out, x)
     end
     return(out)
@@ -52,7 +61,7 @@ end
 # ╔═╡ a0e24bdc-6cfa-11eb-08e7-69eb4bf447b1
 md"
 
-Note: I also want to oversample from questions 300-310 to create a test of 31 rather than 30 questions. This helps me make sure I'm studying the questions related to my local state (Berlin).
+Note: I also want to sample three questions from questions 300-310 of the test set. The test will include three questions about my local state (Berlin). These three questions are drawn from the last 10 questions in the test set.
 
 Here is a single run of the sampler:
 "
@@ -62,11 +71,11 @@ x = ebt_sampler()
 
 # ╔═╡ e4225568-6cfa-11eb-13f0-7777ac4ed57e
 md"
-Looks good. But I want to make certain that I am randomly sampling the all of the questions with known and equal probability. Who knows, maybe I didn't write the algorithm correctly.
+Looks good. But I want to make certain that I'm actually randomly sampling all of the questions with equal probability, except questions 300-310, which should be 3x as likely to be sampled. Who knows, maybe I didn't write the algorithm correctly.
 
-One way to validate the algorithm's correctness is to run it many times and then make a histogram of the outcomes. If I wrote the algorithm correctly the plot should look like a flat bar--each question was drawn with the same frequency.
+One way to validate the algorithm's correctness is to run it many times and then make a histogram of the outcomes. If I wrote the algorithm correctly the plot should look like a flat bar--each question was drawn with the same frequency--except for a 3x spike for questions 300-310.
 
-This is where I will use multi-threading (we could also have done it in the sampler function, but given how few samples it runs, the overhead of setting up the multi-threading would almost certainly outweigh the reduced computation time).
+This is where I will use multi-threading.
 
 ### Single threaded
 
@@ -82,11 +91,11 @@ n = 100
 # ╔═╡ a506ec4c-6cfb-11eb-3235-69f825519bdc
 md"
 
-Note: I took so few samples because of the (so far only one I've found) major downside of Pluto notebooks. Because it is reactive, every time I open the notebook it runs all of the samples. This is a lot when using BenchmarkTools to assess the speed of the implementations as it is taking samples of samples. The time adds up quickly.
+Note: I took so few samples because of one of the major downsides of [Pluto notebooks](https://github.com/fonsp/Pluto.jl). Because they are reactive (usually a Pluto highlight), every time I open the notebook it runs all of the samples. This is a lot when using BenchmarkTools to assess the speed of the implementations. BenchmarkTools takes samples of the samplers. The computation time adds up quickly.
 
 ## Multi-threaded
 
-Now let's look at a few different ways to draw the samples in parallel. We're only going to use 2 CPU cores and so (depending on the set up overhead) expect about about 2x speed up.
+We're only going to use 2 CPU cores and so (depending on the set up overhead) I would expect about about 2x speed up.
 "
 
 # ╔═╡ fb3a3ae4-6cfb-11eb-0d9b-5b69ae91eb81
@@ -98,7 +107,7 @@ md"
 
 ### `@threads` approach
 
-Let's start with the `@threads` approach that I started with. Here we need to use a standard `for` loop. We also (as far as I could figure out) manage the creation of initialising an empty array (with `n` `undef` undefined elements) and placing the results of each sample at the correct array index.
+Let's start with the `@threads` approach. Here we need to use a standard `for` loop. We also (as far as I could figure out) manage the creation of initialising an empty array (with `n` undefined (`undef`) elements) and place the results of each sample at the correct array index.
 "
 
 # ╔═╡ ddb9d96a-6d3d-11eb-29d1-47b996953f55
@@ -117,9 +126,9 @@ end
 md"
 ### `@spawn` with `for` loop in comprehension
 
-Now let's get rid of dealing with the overhead of creating an empty array by using `@spawn` on a `for` loop with a comprehension.
+Now let's get rid of dealing with the overhead of creating an empty array by using `@spawn` on a `for` loop within a comprehension.
 
-Note, I included a `fetch` step. This ensures that the results of the call is completed before returning output. Not doing this can sometimes lead to incomplete output as some of the workers are still busy trying to complete even after the results are returned. This was especially problematic for the `@benchmark`, causing it to hang seemingly indefinitely (see [here](https://discourse.julialang.org/t/spawn-and-btime-benchmark-causes-julia-to-hang/31712/4)).
+Note, I included a `fetch` step. This ensures that the results of the call are completed before the function returns the output. Not doing this can sometimes lead to incomplete output as some of the workers are still busy trying to complete their tasks even after the results are returned. This was especially problematic for the `@benchmark`, causing it to hang seemingly indefinitely (see [here](https://discourse.julialang.org/t/spawn-and-btime-benchmark-causes-julia-to-hang/31712/4)).
 
 "
 
@@ -148,7 +157,7 @@ md"
 
 ## Plot samples
 
-Finally, let's `collect` all of these arrays into one big array and make a histogram to see if each question has an equal probability of being sampled:
+Finally, let's `collect` all of these arrays and make a histogram to see if each test question the expected probability of being sampled:
 "
 
 # ╔═╡ d62f72f6-6dc7-11eb-14e4-916ede86c49f
@@ -161,8 +170,14 @@ histogram(samps_multi_collected, bins = 31, legend = false)
 md"
 Looks pretty good. 
 
-Note that the low first and last bars (the first bar is about 10% lower than the others and the last is about 90% lower) are expected. We didn't sample any 0s for the first bin and the last bin only includes 310.  
+Note that the low first and last bars (the first bar is about 10% lower than the others and the last is about 90% lower) are expected. We didn't sample any 0's for the first bin and the last bin only includes 310. 
+
+To see how t his works (and mostly for me to practice piping with Lazy 😀):
 "
+
+# ╔═╡ 298fee3a-70e8-11eb-1a24-5b7caec1f433
+# draw 100 samples from the range 1:10
+@> sample(1:10, 100) histogram(bins = 1, legend = false)
 
 # ╔═╡ d909212e-6cfb-11eb-0844-49a2bc156db0
 
@@ -182,7 +197,7 @@ Note that the low first and last bars (the first bar is about 10% lower than the
 # ╠═da29ab62-6cfa-11eb-1b2b-4157675492da
 # ╟─e4225568-6cfa-11eb-13f0-7777ac4ed57e
 # ╠═432da8e8-6dc6-11eb-1fe2-179a5a92e07b
-# ╠═8d76cc52-6cfb-11eb-3042-c39b0e7aa4f9
+# ╟─8d76cc52-6cfb-11eb-3042-c39b0e7aa4f9
 # ╟─a506ec4c-6cfb-11eb-3235-69f825519bdc
 # ╠═fb3a3ae4-6cfb-11eb-0d9b-5b69ae91eb81
 # ╟─1ecb8902-705f-11eb-2391-45b69613ea32
@@ -197,6 +212,8 @@ Note that the low first and last bars (the first bar is about 10% lower than the
 # ╠═d62f72f6-6dc7-11eb-14e4-916ede86c49f
 # ╠═efc2caba-6dc7-11eb-1156-4333745e9575
 # ╟─15457c18-6e0d-11eb-1bad-b19ad9331eb5
+# ╠═25dca468-70e8-11eb-36c1-e39dc55de9e4
+# ╠═298fee3a-70e8-11eb-1a24-5b7caec1f433
 # ╟─d909212e-6cfb-11eb-0844-49a2bc156db0
 # ╟─adc118c6-6cfd-11eb-0543-2f509af688f0
 # ╟─5cf4891a-6cfc-11eb-074b-55d8e460319e
