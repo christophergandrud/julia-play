@@ -11,7 +11,7 @@ using BenchmarkTools, StatsPlots, StatsBase
 md"
 # Julia muliti-threaded
 
-Christopher Gandrud, 2021-02-12
+Christopher Gandrud, 2021-02-17
 
 Julia was created with [distributed computing in mind](https://docs.julialang.org/en/v1.0/manual/parallel-computing/). This notebook started out as a simple illustration of the `Threads.@threads for`  [macro](https://docs.julialang.org/en/v1/manual/metaprogramming/). [That worked ok](https://github.com/christophergandrud/julia-play/blob/c93570107280b918e70d70be0240c95d7414212c/julia/multithread-example.jl), but as expected when the documentation says that something is 'experimental' and 'not fully thread-safe', that was easy to hard mess up. The `@threads` macro only works with for loops written in a particular way. As far I can tell, you can't use `@threads` with for loops in [comprehensions](https://docs.julialang.org/en/v1/manual/arrays/#man-comprehensions). This is a real shame because comprehensions take care of messy work of constructing arrays from the looped elements. 
 
@@ -135,7 +135,7 @@ end
 # ╔═╡ 25d0c942-7064-11eb-3a43-0dadd264400b
 md"
 
-Some interesting results from the test. The median time for the `@threads` approach was the fastest, but both it and the `@spawn` with comprehensions approaches were orders of magnitude faster. The maximum `@threads` time was about half the maximum single-threaded approach. Surprisingly, `@spawn` has a much lower maximum time.  
+Some interesting results from the test. The median time for the `@threads` approach was the fastest, but both it and the `@spawn` with comprehensions approaches were orders of magnitude faster. Surprisingly, `@spawn` has a much lower maximum time than either of the other approaches. I'm still digging around to learn how the multi-threaded approaches could be much faster than the we would expect from only doubling the number of available cores. Maybe it has to do with how compilation works in the different approaches. 
 
 "
 
@@ -148,18 +148,20 @@ md"
 
 ## Plot samples
 
-Finally, let's collapse all of these arrays and make a histogram to see if each question has an equal probability of being sampled:
+Finally, let's `collect` all of these arrays into one big array and make a histogram to see if each question has an equal probability of being sampled:
 "
 
 # ╔═╡ d62f72f6-6dc7-11eb-14e4-916ede86c49f
 samps_multi_collected = collect(Iterators.flatten(samps_multi_spawn))
 
 # ╔═╡ efc2caba-6dc7-11eb-1156-4333745e9575
-histogram(samps_multi_collected, bins = 31)
+histogram(samps_multi_collected, bins = 31, legend = false)
 
 # ╔═╡ 15457c18-6e0d-11eb-1bad-b19ad9331eb5
 md"
-Looks pretty good. With more samples (I tried outside of the notebook) it is what we expect. 
+Looks pretty good. 
+
+Note that the low first and last bars (the first bar is about 10% lower than the others and the last is about 90% lower) are expected. We didn't sample any 0s for the first bin and the last bin only includes 310.  
 "
 
 # ╔═╡ d909212e-6cfb-11eb-0844-49a2bc156db0
