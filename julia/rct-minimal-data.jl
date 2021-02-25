@@ -14,7 +14,7 @@ md"
 
 # Reading notes for \"Randomized Controlled Trials with Minimal Data Retention\"
 
-Christopher Gandrud, 2021-02-15
+Christopher Gandrud, 2021-02-24
 
 
 Many data science questions are about groups of people (the simplest is often A vs. B treatment exposed customers). We aren't really interested in retaining individual people's data for this. But standard approaches to analytics and A/B testing often collect the entire set of actions we are interested in and then analyse it. 
@@ -80,7 +80,7 @@ In many online settings, it is unlikely that we have exactly one observation arr
 
 # ╔═╡ 51c0bdb8-72c2-11eb-0bb7-5f22e5ca952e
 # Recursive mean 
-function recursive_mean(;t::Int64, x̄_before, xₜ = missing, Δ = missing, t′ = missing)::Float64
+function recursive_mean(;t::Int64, x̄_before::Real, xₜ = missing, Δ = missing, t′ = missing)::Float64
 	if ismissing(t′) | ismissing(Δ) #  single step evaluation
 		x̄_before + (1/t) * (xₜ - x̄_before) 
 	elseif ismissing(xₜ) # batch evaluation
@@ -94,7 +94,7 @@ md"
 "
 
 # ╔═╡ 995d0bf2-759e-11eb-327b-49c1820f60b2
-function process_mean_recursively_single_step(x)
+function process_mean_recursively_single_step(x::Vector{Real})
 	# Initialise
 	length_x = length(x)
 	x̄ₜ_out = zeros(length_x)
@@ -136,7 +136,7 @@ begin
 	end
 
 
-	function process_mean_recursively_batch(x)
+	function process_mean_recursively_batch(x::Vector{Real})
 		# Initialise
 		length_x = length(x)
 		batches = batcher(length_x, k)
@@ -151,7 +151,8 @@ begin
 				x̄ₜ_out[1] = recursive_mean(t = 1, x̄_before = x̄_before, Δ = Δ, t′ = t′)
 			else
 				t_before = last(batches[i-1])
-				x̄ₜ_out[i] = recursive_mean(t = t_before, x̄_before = x̄ₜ_out[i-1], Δ = Δ, t′ = t′)
+				x̄ₜ_out[i] = recursive_mean(t = t_before, x̄_before = x̄ₜ_out[i-1], 
+										   Δ = Δ, t′ = t′)
 			end
 		end
 		return x̄ₜ_out
@@ -163,8 +164,7 @@ begin
 	x̄_batch = process_mean_recursively_batch(x)
 	p_batch = plot(1:k, x̄_batch, label = "Batched Recursive Mean")
 	plot!(p_batch, repeat([full_sample_mean_x], k), 
-		label = "Complete Sample Mean", legend = :bottomright) 
-	
+		label = "Complete Sample Mean", legend = :bottomright) 	
 end
 
 # ╔═╡ f2eff40a-72c3-11eb-02f2-9d0edd810573
@@ -175,7 +175,7 @@ md"
 The variance can be found recursively by first finding the sum of squares up to and including observation ``t``: 
 
 ``
-s_t = s_{t-1} + \frac{t-1}{t}(z_t - \bar{z}_{t-1})^2. 
+s_t = s_{t-1} + \frac{t-1}{t}(x_t - \bar{x}_{t-1})^2. 
 ``
 
 where ``s_{t-1}`` is the is the sum of squares after ``t-1`` observations. The variance is then:
@@ -183,18 +183,26 @@ where ``s_{t-1}`` is the is the sum of squares after ``t-1`` observations. The v
 ``
 \widehat{v_t^2} = \frac{s_t}{t -1}.
 ``
+
+The batch version is:
+
+``
+s_{t^′} = s_{\Delta} + \frac{t}{t^\prime}(t^\prime - t)(\bar{\Delta} - \bar{x}_{t})^2. 
+``
+
+``\bar{\Delta}`` is the batch mean and ``s_\Delta`` is the batch sum of squares.
+
+Let's put this together:
+
 "
 
 # ╔═╡ 87632fae-7412-11eb-1f0c-6bd407ba93b6
-function sum_of_squares(x::Vector{Float64})
+function sum_of_squares(x::Vector{Real})::Float64
 	length_x = length(x)
 	x̄ = mean(x)
 	squared_deviations = [(x[i] - x̄)^2 for i in 1:length_x]
 	sum(squared_deviations)
 end
-
-# ╔═╡ 1f150818-7413-11eb-3a1e-47022d0ad3ad
-sum_of_squares(collect(1.0:10.0))
 
 # ╔═╡ 0ca37d6e-72c3-11eb-1914-a95669d3d8ae
 function recursive_variance(xₜ::Float64, t::Int64, x̄_before::Float64, s_before::Float64)
@@ -223,9 +231,8 @@ test2.sum_squares
 # ╟─915aa256-75ed-11eb-2fe3-694827b07e54
 # ╠═9c05ce3a-75ed-11eb-1c9f-5d13a97725dd
 # ╠═7675ea88-75f2-11eb-3fde-e5e0be91b628
-# ╠═f2eff40a-72c3-11eb-02f2-9d0edd810573
+# ╟─f2eff40a-72c3-11eb-02f2-9d0edd810573
 # ╠═87632fae-7412-11eb-1f0c-6bd407ba93b6
-# ╠═1f150818-7413-11eb-3a1e-47022d0ad3ad
 # ╠═0ca37d6e-72c3-11eb-1914-a95669d3d8ae
 # ╠═def22912-7441-11eb-0892-afeb5bd39fb7
 # ╠═0162c182-7442-11eb-2ad3-2770c96aa71e
