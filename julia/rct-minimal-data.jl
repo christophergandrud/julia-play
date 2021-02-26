@@ -197,6 +197,7 @@ Let's put this together:
 "
 
 # ╔═╡ 87632fae-7412-11eb-1f0c-6bd407ba93b6
+# For validation
 function sum_of_squares(x::Vector{Real})::Float64
 	length_x = length(x)
 	x̄ = mean(x)
@@ -205,17 +206,47 @@ function sum_of_squares(x::Vector{Real})::Float64
 end
 
 # ╔═╡ 0ca37d6e-72c3-11eb-1914-a95669d3d8ae
-function recursive_variance(xₜ::Float64, t::Int64, x̄_before::Float64, s_before::Float64)
-	sₜ = s_before + (t-1) / t * (xₜ - x̄_before)
+function recursive_variance(;t::Int64, x̄_before::Real, xₜ = missing, s_before::Real, t′ = missing, x̄_batch = missing, s_batch = missing)
+	if ismissing(t′) | ismissing(x̄_batch) | ismissing(s_batch)
+		sₜ = s_before + ((t-1) / t) * (xₜ - x̄_before)^2
+	else
+		sₜ = s_batch + (t / t′) * (t′ - t) * (x̄_batch - x̄_before)^2
+	end
 	varianceₜ = sₜ / (t - 1)
 	(varianceₜ = varianceₜ, sum_squares = sₜ) 	
 end
 
-# ╔═╡ def22912-7441-11eb-0892-afeb5bd39fb7
-test2 = recursive_variance(20.1, 10, 15.1, 2.0)
-
 # ╔═╡ 0162c182-7442-11eb-2ad3-2770c96aa71e
-test2.sum_squares
+md"
+### Single step recursive variance
+"
+
+# ╔═╡ d3312804-7736-11eb-10fc-fbf14354d4c5
+function process_variance_recursively_singe_step(x::Vector{Real})
+	# Initialise
+	length_x = length(x)
+	x̄ₜ_out, var_out, s = zeros(length_x), zeros(length_x), zeros(length_x)
+	
+	x̄ₜ_out[1] = recursive_mean(t = 1, x̄_before = x[1], xₜ = x[1])
+	var_out[1] = recursive_variance(t = 1, x̄_before = x[1], xₜ = x[1], s_before = 0)[1]
+	
+	# Recursion
+	for i in 2:length_x
+		x̄ₜ_out[i] = recursive_mean(t = i, x̄_before = x̄ₜ_out[i-1], xₜ = x[i])
+		var_out[i], s[i] = recursive_variance(t = i, x̄_before = x̄ₜ_out[i-1], xₜ = x[i], s_before = s[i-1])
+	end
+	return x̄ₜ_out, var_out, s
+end
+
+# ╔═╡ 2d830248-77ff-11eb-25b5-c94d631fdc7b
+begin
+	var_single = process_variance_recursively_singe_step(x)[2]
+	var_full_sample = var(x)
+	p_var_single = plot(1:n, var_single, label = "Recursive Variance")
+	plot!(p_var_single, repeat([var_full_sample], n), 
+		label = "Complete Sample Variance",
+		legend = :bottomright)
+end
 
 # ╔═╡ Cell order:
 # ╟─2ff54132-6f53-11eb-21a0-653b9cab4e81
@@ -232,7 +263,8 @@ test2.sum_squares
 # ╠═9c05ce3a-75ed-11eb-1c9f-5d13a97725dd
 # ╠═7675ea88-75f2-11eb-3fde-e5e0be91b628
 # ╟─f2eff40a-72c3-11eb-02f2-9d0edd810573
-# ╠═87632fae-7412-11eb-1f0c-6bd407ba93b6
+# ╟─87632fae-7412-11eb-1f0c-6bd407ba93b6
 # ╠═0ca37d6e-72c3-11eb-1914-a95669d3d8ae
-# ╠═def22912-7441-11eb-0892-afeb5bd39fb7
-# ╠═0162c182-7442-11eb-2ad3-2770c96aa71e
+# ╟─0162c182-7442-11eb-2ad3-2770c96aa71e
+# ╠═d3312804-7736-11eb-10fc-fbf14354d4c5
+# ╠═2d830248-77ff-11eb-25b5-c94d631fdc7b
