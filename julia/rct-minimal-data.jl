@@ -113,6 +113,7 @@ begin
 	full_sample_mean_x = mean(x)
 	p_single = plot(1:n, x̄_single_step, label = "Recursive Mean")
 	plot!(p_single, repeat([full_sample_mean_x], n), 
+		xlab = "Observations",
 		label = "Complete Sample Mean", legend = :bottomright) 
 end
 
@@ -164,6 +165,7 @@ begin
 	x̄_batch = process_mean_recursively_batch(x)
 	p_batch = plot(1:k, x̄_batch, label = "Batched Recursive Mean")
 	plot!(p_batch, repeat([full_sample_mean_x], k), 
+		xlab = "Batches",
 		label = "Complete Sample Mean", legend = :bottomright) 	
 end
 
@@ -197,7 +199,6 @@ Let's put this together:
 "
 
 # ╔═╡ 87632fae-7412-11eb-1f0c-6bd407ba93b6
-# For validation
 function sum_of_squares(x::Vector{Real})::Float64
 	length_x = length(x)
 	x̄ = mean(x)
@@ -206,11 +207,11 @@ function sum_of_squares(x::Vector{Real})::Float64
 end
 
 # ╔═╡ 0ca37d6e-72c3-11eb-1914-a95669d3d8ae
-function recursive_variance(;t::Int64, x̄_before::Real, xₜ = missing, s_before::Real, t′ = missing, x̄_batch = missing, s_batch = missing)
-	if ismissing(t′) | ismissing(x̄_batch) | ismissing(s_batch)
+function recursive_variance(;t::Int64, x̄_before::Real, xₜ = missing, s_before::Real, t′ = missing, Δ̄ = missing, s_batch = missing)
+	if ismissing(t′) | ismissing(Δ̄) | ismissing(s_batch)
 		sₜ = s_before + ((t-1) / t) * (xₜ - x̄_before)^2
 	else
-		sₜ = s_batch + (t / t′) * (t′ - t) * (x̄_batch - x̄_before)^2
+		sₜ = s_batch + (t / t′) * (t′ - t) * (Δ̄ - x̄_before)^2
 	end
 	varianceₜ = sₜ / (t - 1)
 	(varianceₜ = varianceₜ, sum_squares = sₜ) 	
@@ -244,9 +245,69 @@ begin
 	var_full_sample = var(x)
 	p_var_single = plot(1:n, var_single, label = "Recursive Variance")
 	plot!(p_var_single, repeat([var_full_sample], n), 
+		xlab = "Observations",
 		label = "Complete Sample Variance",
 		legend = :bottomright)
 end
+
+# ╔═╡ e0c47a80-780e-11eb-29f1-73898a88c1c4
+md"
+### Batch recursive variance
+"
+
+# ╔═╡ ec636b26-780e-11eb-1477-dddbd014b808
+function process_variance_recusively_batch(x::Vector{Real})
+	function batch_mean_sos(x::Vector{Real}, f::Int64, t′::Int64; first::Bool = false)
+		batch_values = x[f:t′]
+		if first
+			Δ̄ = sum(batch_values) / (t′)
+		else
+			Δ̄ = sum(batch_values) / (t′ - (f-1))
+		end
+		s_batch = sum_of_squares(batch_values)
+		return Δ̄, s_batch
+	end
+	
+	# Initialise
+	length_x = length(x)
+	batches = batcher(length_x, k)
+	length_batches = length(batches)
+	x̄ₜ_out, var_out, s = zeros(length_batches), zeros(length_batches), zeros(length_batches)
+	
+	# Batch values
+	for i in 1:length(batches)
+		f, t′ = first(batches[i]), last(batches[i])
+		Δ̄, s_batch = batch_mean_sos(x, f, t′, first = true)
+		if i == 1
+			x̄ₜ_out[1] = recursive_mean(t = 1, x̄_before = Δ̄, Δ = Δ̄, t′ = t′)
+			var_out[1], s[1] = recursive_variance(t = 1, 
+												  x̄_before = Δ̄, 
+												  Δ̄ = Δ̄,
+												  t′ = t′,
+												  s_before = s_batch,
+												  s_batch = s_batch)
+			
+		else
+			t_before = last(batches[i-1])
+			Δ̄, s_batch = batch_mean_sos(x, f, t′)
+			x̄ₜ_out[i] = recursive_mean(t = t_before, x̄_before = x̄ₜ_out[i-1], 
+									   Δ = Δ̄, t′ = t′)
+			var_out[i], s[i] = recursive_variance(t = t_before, 
+												  x̄_before = x̄ₜ_out[i-1], 
+												  Δ̄ = Δ̄, s_before = s[i-1],
+												  t′ = t′,
+												  s_batch = s_batch)
+		end
+	end
+	return x̄ₜ_out, var_out, s
+end
+
+# ╔═╡ ed45cd80-780f-11eb-2ed0-4b28e866f4fe
+begin
+	var_batch = process_variance_recusively_batch(x)[2]
+	p_var_batch = plot(1:k, var_batch, label = "Batch Variance")
+	plot!(p_var_batch, repeat([var_full_sample], k), label = "Full Sample Variance")
+end 
 
 # ╔═╡ Cell order:
 # ╟─2ff54132-6f53-11eb-21a0-653b9cab4e81
@@ -263,8 +324,11 @@ end
 # ╠═9c05ce3a-75ed-11eb-1c9f-5d13a97725dd
 # ╠═7675ea88-75f2-11eb-3fde-e5e0be91b628
 # ╟─f2eff40a-72c3-11eb-02f2-9d0edd810573
-# ╟─87632fae-7412-11eb-1f0c-6bd407ba93b6
+# ╠═87632fae-7412-11eb-1f0c-6bd407ba93b6
 # ╠═0ca37d6e-72c3-11eb-1914-a95669d3d8ae
 # ╟─0162c182-7442-11eb-2ad3-2770c96aa71e
 # ╠═d3312804-7736-11eb-10fc-fbf14354d4c5
 # ╠═2d830248-77ff-11eb-25b5-c94d631fdc7b
+# ╟─e0c47a80-780e-11eb-29f1-73898a88c1c4
+# ╠═ec636b26-780e-11eb-1477-dddbd014b808
+# ╠═ed45cd80-780f-11eb-2ed0-4b28e866f4fe
