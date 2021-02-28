@@ -21,7 +21,10 @@ Many data science questions are about groups of people (the simplest is often A 
 
 Winston Chou has an interesting recent paper--[\"Randomzed Controlled Trials with Minimal Data Retention\"](https://arxiv.org/pdf/2102.03316.pdf)--developing approaches to analysing A/B tests without needing to retain customer data, even for longer running A/B tests where we are interested in repeated behaviour.
 
-Though not explicitly discussed in the paper, it proposes on an interesting way of rethinking analysing experiments as [signal processing](https://en.wikipedia.org/wiki/Signal_processing). Rather than selecting methods that assume all of the data is collected--the traditional starting point of many social science data scientists--, the paper draws on signal processing methods like [recursive least squares](https://en.wikipedia.org/wiki/Recursive_least_squares_filter). These methods address problems where some noisy signal is being received and needs to be understood and acted upon in something like real-time.    
+Though not explicitly discussed in the paper, it proposes on an interesting way of rethinking analysing experiments drawing on [Cite Chan et al.] 
+
+
+[signal processing](https://en.wikipedia.org/wiki/Signal_processing). Rather than selecting methods that assume all of the data is collected--the traditional starting point of many social science data scientists--, the paper draws on signal processing methods like [recursive least squares](https://en.wikipedia.org/wiki/Recursive_least_squares_filter). These methods address problems where some noisy signal is being received and needs to be understood and acted upon in something like real-time.    
 
 This are my notes for the article with some simulations to help me think through the algorithms.
 "
@@ -189,10 +192,12 @@ where ``s_{t-1}`` is the is the sum of squares after ``t-1`` observations. The v
 The batch version is:
 
 ``
-s_{t^′} = s_{\Delta} + \frac{t}{t^\prime}(t^\prime - t)(\bar{\Delta} - \bar{x}_{t})^2. 
+s_{t^′} = s_{t-1} + s_{\Delta} + \frac{t}{t^\prime}(t^\prime - t)(\bar{\Delta} - \bar{x}_{t})^2. 
 ``
 
 ``\bar{\Delta}`` is the batch mean and ``s_\Delta`` is the batch sum of squares.
+
+Note that the batch recursive variance formula reported in [Chuo (2021, footnote 4)](https://arxiv.org/pdf/2102.03316.pdf) appears be incorrect. It is missing the sum or squared deviations prior to the current batch (``s_{t-1}``). See [Chan et al. (1983, Eq. 1.5)](http://www.cs.yale.edu/publications/techreports/tr222.pdf).
 
 Let's put this together:
 
@@ -207,13 +212,15 @@ function sum_of_squares(x::Vector{Real})::Float64
 end
 
 # ╔═╡ 0ca37d6e-72c3-11eb-1914-a95669d3d8ae
-function recursive_variance(;t::Int64, x̄_before::Real, xₜ = missing, s_before::Real, t′ = missing, Δ̄ = missing, s_batch = missing)
-	if ismissing(t′) | ismissing(Δ̄) | ismissing(s_batch)
-		sₜ = s_before + ((t-1) / t) * (xₜ - x̄_before)^2
+function recursive_variance(;t::Int64, x̄_before::Real, xₜ = missing, s::Real, 
+		s_batch = missing, t′ = missing, Δ̄ = missing)
+	if ismissing(t′) | ismissing(Δ̄)
+		sₜ = s + ((t-1) / t) * (xₜ - x̄_before)^2
+		varianceₜ = sₜ / (t - 1)
 	else
-		sₜ = s_batch + (t / t′) * (t′ - t) * (Δ̄ - x̄_before)^2
+		sₜ = s + s_batch + (t / t′) * (t′ - t) * (Δ̄ - x̄_before)^2
+		varianceₜ = sₜ / (t′ - 1)
 	end
-	varianceₜ = sₜ / (t - 1)
 	(varianceₜ = varianceₜ, sum_squares = sₜ) 	
 end
 
@@ -229,13 +236,13 @@ function process_variance_recursively_singe_step(x::Vector{Real})
 	x̄ₜ_out, var_out, s = zeros(length_x), zeros(length_x), zeros(length_x)
 	
 	x̄ₜ_out[1] = recursive_mean(t = 1, x̄_before = x[1], xₜ = x[1])
-	var_out[1] = recursive_variance(t = 1, x̄_before = x[1], xₜ = x[1], s_before = 0)[1]
+	var_out[1] = recursive_variance(t = 1, x̄_before = x[1], xₜ = x[1], s = 0)[1]
 	
 	# Recursion
 	for i in 2:length_x
 		x̄ₜ_out[i] = recursive_mean(t = i, x̄_before = x̄ₜ_out[i-1], xₜ = x[i])
 		var_out[i], s[i] = recursive_variance(t = i, x̄_before = x̄ₜ_out[i-1], 
-											  xₜ = x[i], s_before = s[i-1])
+											  xₜ = x[i], s = s[i-1])
 	end
 	return x̄ₜ_out, var_out, s
 end
@@ -251,60 +258,57 @@ begin
 		legend = :bottomright)
 end
 
+# ╔═╡ c3a02cb2-7992-11eb-02f4-5116767ed047
+process_variance_recursively_singe_step(x)
+
 # ╔═╡ e0c47a80-780e-11eb-29f1-73898a88c1c4
 md"
 ### Batch recursive variance
+
 "
 
 # ╔═╡ ec636b26-780e-11eb-1477-dddbd014b808
-function process_variance_recusively_batch(x::Vector{Real})
-	function batch_mean_sos(x::Vector{Real}, f::Int64, t′::Int64; first::Bool = false)
-		batch_values = x[f:t′] 
-		if first
-			Δ̄ = sum(batch_values) / (t′)
-		else
-			Δ̄ = sum(batch_values) / (t′ - (f-1))
-		end
-		s_batch = sum_of_squares(batch_values)
-		return Δ̄, s_batch
-	end
-	
+function process_variance_recusively_batch(x::Vector{Real}, k::Int64 = 84)
 	# Initialise
 	length_x = length(x)
 	batches = batcher(length_x, k)
-	length_batches = length(batches)
-	x̄ₜ_out, var_out, s = zeros(length_batches), zeros(length_batches), zeros(length_batches)
+	x̄ₜ_out, var_out, s = zeros(k), zeros(k), zeros(k)
 	
 	# Batch values
-	for i in 1:length(batches)
+	for i in 1:k
 		f, t′ = first(batches[i]), last(batches[i])
-		Δ̄, s_batch = batch_mean_sos(x, f, t′, first = true)
+		batch_values = x[f:t′]
+		Δ, Δ̄ = sum(batch_values), mean(batch_values)
+		s_batch = sum_of_squares(batch_values)
+		
 		if i == 1
-			x̄ₜ_out[1] = recursive_mean(t = 1, x̄_before = Δ̄, Δ = Δ̄, t′ = t′)
+			x̄ₜ_out[1] = recursive_mean(t = 1, x̄_before = Δ̄, Δ = Δ, t′ = t′)
 			var_out[1], s[1] = recursive_variance(t = 1, 
 												  x̄_before = Δ̄, 
-												  Δ̄ = Δ̄,
-												  t′ = t′,
-												  s_before = s_batch,
-												  s_batch = s_batch)
+												  Δ̄ = Δ̄, t′ = t′,
+												  s = s_batch, s_batch = s_batch)
 			
 		else
 			t_before = last(batches[i-1])
-			Δ̄, s_batch = batch_mean_sos(x, f, t′)
 			x̄ₜ_out[i] = recursive_mean(t = t_before, x̄_before = x̄ₜ_out[i-1], 
-									   Δ = Δ̄, t′ = t′)
+									   Δ = Δ, t′ = t′)
 			var_out[i], s[i] = recursive_variance(t = t_before, 
-												  x̄_before = x̄ₜ_out[i-1], 
-												  Δ̄ = Δ̄, s_before = s[i-1],
-												  t′ = t′,
-												  s_batch = s_batch)
+												  x̄_before = x̄ₜ_out[i-1], t′ = t′,
+												  Δ̄ = Δ̄, 
+												  s = s[i-1], s_batch = s_batch)
 		end
 	end
 	return x̄ₜ_out, var_out, s
 end
 
-# ╔═╡ 753005ec-790e-11eb-29c6-f73b1dd22b25
+# ╔═╡ 827410ea-7998-11eb-1754-ffb904e6c560
 process_variance_recusively_batch(x)
+
+# ╔═╡ 753005ec-790e-11eb-29c6-f73b1dd22b25
+begin
+	p_test = plot(1:k, process_variance_recusively_batch(x)[1])
+	plot!(p_test, repeat([mean(x)], k))
+end
 
 # ╔═╡ ed45cd80-780f-11eb-2ed0-4b28e866f4fe
 begin
@@ -314,7 +318,7 @@ begin
 end 
 
 # ╔═╡ Cell order:
-# ╟─2ff54132-6f53-11eb-21a0-653b9cab4e81
+# ╠═2ff54132-6f53-11eb-21a0-653b9cab4e81
 # ╠═104838de-71f0-11eb-1cf3-5bd7b31e2e6c
 # ╟─bdb11a90-71eb-11eb-3f8e-6185ca6526cc
 # ╠═2a191476-7202-11eb-20e0-5799dac12cc2
@@ -333,7 +337,9 @@ end
 # ╟─0162c182-7442-11eb-2ad3-2770c96aa71e
 # ╠═d3312804-7736-11eb-10fc-fbf14354d4c5
 # ╠═2d830248-77ff-11eb-25b5-c94d631fdc7b
-# ╟─e0c47a80-780e-11eb-29f1-73898a88c1c4
+# ╠═c3a02cb2-7992-11eb-02f4-5116767ed047
+# ╠═e0c47a80-780e-11eb-29f1-73898a88c1c4
 # ╠═ec636b26-780e-11eb-1477-dddbd014b808
+# ╠═827410ea-7998-11eb-1754-ffb904e6c560
 # ╠═753005ec-790e-11eb-29c6-f73b1dd22b25
 # ╠═ed45cd80-780f-11eb-2ed0-4b28e866f4fe
