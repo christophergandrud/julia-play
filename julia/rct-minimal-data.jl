@@ -234,7 +234,8 @@ function process_variance_recursively_singe_step(x::Vector{Real})
 	# Recursion
 	for i in 2:length_x
 		x̄ₜ_out[i] = recursive_mean(t = i, x̄_before = x̄ₜ_out[i-1], xₜ = x[i])
-		var_out[i], s[i] = recursive_variance(t = i, x̄_before = x̄ₜ_out[i-1], xₜ = x[i], s_before = s[i-1])
+		var_out[i], s[i] = recursive_variance(t = i, x̄_before = x̄ₜ_out[i-1], 
+											  xₜ = x[i], s_before = s[i-1])
 	end
 	return x̄ₜ_out, var_out, s
 end
@@ -258,7 +259,7 @@ md"
 # ╔═╡ ec636b26-780e-11eb-1477-dddbd014b808
 function process_variance_recusively_batch(x::Vector{Real})
 	function batch_mean_sos(x::Vector{Real}, f::Int64, t′::Int64; first::Bool = false)
-		batch_values = x[f:t′]
+		batch_values = x[f:t′] 
 		if first
 			Δ̄ = sum(batch_values) / (t′)
 		else
@@ -302,6 +303,9 @@ function process_variance_recusively_batch(x::Vector{Real})
 	return x̄ₜ_out, var_out, s
 end
 
+# ╔═╡ 753005ec-790e-11eb-29c6-f73b1dd22b25
+process_variance_recusively_batch(x)
+
 # ╔═╡ ed45cd80-780f-11eb-2ed0-4b28e866f4fe
 begin
 	var_batch = process_variance_recusively_batch(x)[2]
@@ -331,4 +335,5 @@ end
 # ╠═2d830248-77ff-11eb-25b5-c94d631fdc7b
 # ╟─e0c47a80-780e-11eb-29f1-73898a88c1c4
 # ╠═ec636b26-780e-11eb-1477-dddbd014b808
+# ╠═753005ec-790e-11eb-29c6-f73b1dd22b25
 # ╠═ed45cd80-780f-11eb-2ed0-4b28e866f4fe
