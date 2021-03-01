@@ -21,12 +21,13 @@ Many data science questions are about groups of people (the simplest is often A 
 
 Winston Chou has an interesting recent paper--[\"Randomzed Controlled Trials with Minimal Data Retention\"](https://arxiv.org/pdf/2102.03316.pdf)--developing approaches to analysing A/B tests without needing to retain customer data, even for longer running A/B tests where we are interested in repeated behaviour.
 
-Though not explicitly discussed in the paper, it proposes on an interesting way of rethinking analysing experiments drawing on [Cite Chan et al.] 
+Though not explicitly discussed in the paper, it draws on methods from older computer science and information processing literatures (e.g. [Chan et al. (1983)](http://www.cs.yale.edu/publications/techreports/tr222.pdf)) to address privacy problems in A/B testing. 
 
+In the early 80s (and before) the problem was less \"how do we run an A/B test without storing customer data\" than \"how do we do statistics without having don't enough memory to hold all of the data for the computation.\" 
 
-[signal processing](https://en.wikipedia.org/wiki/Signal_processing). Rather than selecting methods that assume all of the data is collected--the traditional starting point of many social science data scientists--, the paper draws on signal processing methods like [recursive least squares](https://en.wikipedia.org/wiki/Recursive_least_squares_filter). These methods address problems where some noisy signal is being received and needs to be understood and acted upon in something like real-time.    
+The [Wiki article on Algorithms for calculating variance](https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance) is a good place to understand some of the key issues. 
 
-This are my notes for the article with some simulations to help me think through the algorithms.
+This are my notes for pages 5-6 of the article with some simulations to help me think through the algorithms (and find a few typos).
 "
 
 # ╔═╡ bdb11a90-71eb-11eb-3f8e-6185ca6526cc
@@ -172,6 +173,14 @@ begin
 		label = "Complete Sample Mean", legend = :bottomright) 	
 end
 
+# ╔═╡ 465b9a82-7a89-11eb-26b4-1fe156e83ee8
+md"
+It's important to note that the full sample variance calculated by both methods is not exactly the same due to (a) roundoff error and (b) lack of precision in how the numbers are represented by the computer:
+"
+
+# ╔═╡ 5aacce7a-7a89-11eb-2aa4-e158311a1969
+full_sample_mean_x, x̄_batch[k]
+
 # ╔═╡ f2eff40a-72c3-11eb-02f2-9d0edd810573
 md"
 
@@ -258,9 +267,6 @@ begin
 		legend = :bottomright)
 end
 
-# ╔═╡ c3a02cb2-7992-11eb-02f4-5116767ed047
-process_variance_recursively_singe_step(x)
-
 # ╔═╡ e0c47a80-780e-11eb-29f1-73898a88c1c4
 md"
 ### Batch recursive variance
@@ -317,8 +323,16 @@ begin
 	plot!(p_var_batch, repeat([var_full_sample], k), label = "Full Sample Variance")
 end 
 
+# ╔═╡ dca8f8a4-7a84-11eb-2c72-99ef103ceb44
+md"
+Again, it's important to note that the full sample variance calculated by both methods is not exactly the same due to (a) roundoff error and (b) lack of precision in how the numbers are represented by the computer:
+"
+
+# ╔═╡ f81974b0-7a84-11eb-0bd8-f3155f4f8adb
+var_full_sample, var_batch[k]
+
 # ╔═╡ Cell order:
-# ╠═2ff54132-6f53-11eb-21a0-653b9cab4e81
+# ╟─2ff54132-6f53-11eb-21a0-653b9cab4e81
 # ╠═104838de-71f0-11eb-1cf3-5bd7b31e2e6c
 # ╟─bdb11a90-71eb-11eb-3f8e-6185ca6526cc
 # ╠═2a191476-7202-11eb-20e0-5799dac12cc2
@@ -331,15 +345,18 @@ end
 # ╟─915aa256-75ed-11eb-2fe3-694827b07e54
 # ╠═9c05ce3a-75ed-11eb-1c9f-5d13a97725dd
 # ╠═7675ea88-75f2-11eb-3fde-e5e0be91b628
+# ╟─465b9a82-7a89-11eb-26b4-1fe156e83ee8
+# ╠═5aacce7a-7a89-11eb-2aa4-e158311a1969
 # ╟─f2eff40a-72c3-11eb-02f2-9d0edd810573
 # ╠═87632fae-7412-11eb-1f0c-6bd407ba93b6
 # ╠═0ca37d6e-72c3-11eb-1914-a95669d3d8ae
 # ╟─0162c182-7442-11eb-2ad3-2770c96aa71e
 # ╠═d3312804-7736-11eb-10fc-fbf14354d4c5
 # ╠═2d830248-77ff-11eb-25b5-c94d631fdc7b
-# ╠═c3a02cb2-7992-11eb-02f4-5116767ed047
-# ╠═e0c47a80-780e-11eb-29f1-73898a88c1c4
+# ╟─e0c47a80-780e-11eb-29f1-73898a88c1c4
 # ╠═ec636b26-780e-11eb-1477-dddbd014b808
 # ╠═827410ea-7998-11eb-1754-ffb904e6c560
 # ╠═753005ec-790e-11eb-29c6-f73b1dd22b25
 # ╠═ed45cd80-780f-11eb-2ed0-4b28e866f4fe
+# ╟─dca8f8a4-7a84-11eb-2c72-99ef103ceb44
+# ╠═f81974b0-7a84-11eb-0bd8-f3155f4f8adb
