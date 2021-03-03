@@ -5,16 +5,14 @@ using Markdown
 using InteractiveUtils
 
 # ╔═╡ 104838de-71f0-11eb-1cf3-5bd7b31e2e6c
-begin
-	using Distributions, Random, StatsPlots
-end
+using Distributions, Random, StatsPlots
 
 # ╔═╡ 2ff54132-6f53-11eb-21a0-653b9cab4e81
 md"
 
-# Reading notes for \"Randomized Controlled Trials with Minimal Data Retention\"
+# Reading notes for \"Randomized Controlled Trials with Minimal Data Retention (p. 5-6)\"
 
-Christopher Gandrud, 2021-02-24
+Christopher Gandrud, 2021-03-01
 
 
 Many data science questions are about groups of people (the simplest is often A vs. B treatment exposed customers). We aren't really interested in retaining individual people's data for this. But standard approaches to analytics and A/B testing often collect the entire set of actions we are interested in and then analyse it. 
@@ -68,17 +66,13 @@ md"
 
 We can recursively find the running mean--estimated average treatment effect--as this observations arrive up to observation ``t`` with:
 
-``
-\bar{x}_t = \bar{x}_{t - 1} + \frac{1}{t}(x_t - \bar{x}_{t-1}).
-``
+$$\bar{x}_t = \bar{x}_{t - 1} + \frac{1}{t}(x_t - \bar{x}_{t-1}).$$
 
 Note that ``\frac{1}{t}`` is the Kalman gain.
 
 In many online settings, it is unlikely that we have exactly one observation arriving at a time. Instead, we often have batches of observations. We can generalise the recursive mean equation to batches. ``t^\prime`` is the total number of observations after observing the batch and Δ is the batch sum of ``x``. The recursive batch mean is then:
 
-``
-\bar{x}_{t^\prime} = \bar{x}_{t - 1} + \frac{1}{t^\prime}[\Delta - (t^\prime - t) \bar{x}_{t-1}].
-``
+$$\bar{x}_{t^\prime} = \bar{x}_{t - 1} + \frac{1}{t^\prime}[\Delta - (t^\prime - t) \bar{x}_{t-1}].$$
 
 "
 
@@ -188,21 +182,15 @@ md"
 
 The variance can be found recursively by first finding the sum of squares up to and including observation ``t``: 
 
-``
-s_t = s_{t-1} + \frac{t-1}{t}(x_t - \bar{x}_{t-1})^2. 
-``
+$$s_t = s_{t-1} + \frac{t-1}{t}(x_t - \bar{x}_{t-1})^2.$$
 
 where ``s_{t-1}`` is the is the sum of squares after ``t-1`` observations. The variance is then:
 
-``
-\widehat{v_t^2} = \frac{s_t}{t -1}.
-``
+$$\widehat{v_t^2} = \frac{s_t}{t -1}.$$
 
 The batch version is:
 
-``
-s_{t^′} = s_{t-1} + s_{\Delta} + \frac{t}{t^\prime}(t^\prime - t)(\bar{\Delta} - \bar{x}_{t})^2. 
-``
+$$s_{t^′} = s_{t-1} + s_{\Delta} + \frac{t}{t^\prime}(t^\prime - t)(\bar{\Delta} - \bar{x}_{t})^2.$$
 
 ``\bar{\Delta}`` is the batch mean and ``s_\Delta`` is the batch sum of squares.
 
@@ -325,7 +313,7 @@ end
 
 # ╔═╡ dca8f8a4-7a84-11eb-2c72-99ef103ceb44
 md"
-Again, it's important to note that the full sample variance calculated by both methods is not exactly the same due to (a) roundoff error and (b) lack of precision in how the numbers are represented by the computer:
+Again, it's important to note that the full sample variance calculated by both methods is not exactly the same:
 "
 
 # ╔═╡ f81974b0-7a84-11eb-0bd8-f3155f4f8adb
