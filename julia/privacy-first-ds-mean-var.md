@@ -20,13 +20,13 @@ $$
 
 Ok, so what?
 
-Let's think about the problem we are trying to solve and unintended privacy implications of using the classic solution. We often want to understand the population (or some group in the population) level impact. We don't want dive deep on individual people. But the simple equation for the mean and sum of squares has these $\sum_{i=1}^{n}$. They require us to have all of the $x_i$ observations at the same time to calculate these statistics. So, we need to keep all of this data for each person $i$ in the study up until and including when we calculate these statistics. 
+Let's think about the problem we are trying to solve and unintended privacy implications of using the classic solution. We often want to understand the population (or some group in the population) level impact. We don't want to dive deep on individual people. But the simple equation for the mean and sum of squares has these $\sum_{i=1}^{n}$. They require us to have all of the $x_i$ observations at the same time to calculate these statistics. So, we need to keep all of this data for each person $i$ in the study up until and including when we calculate these statistics. 
 
 ## Minimum data collection and retention: a privacy principle
 
 A good rule of thumb for privacy first data science is that:
 
-> we should collect and keep the absolute mimimum amount of individual's data possible. 
+> we should collect and keep the absolute mimimum amount of each individual's data possible. 
 
 If we don't have a good reason to collect the data,[^1] don't collect it. If there is a way to calculate a statistic without retaining individuals' data, use that method and don't retain the data beyond what is necessary.  
 
@@ -47,11 +47,10 @@ Before jumping into the formulas, let's discuss the data gathering process we ar
 		x1(x1) --> |Delete| b[Batch]
 		x2(x2) --> |Delete| b[Batch]
 		x3(x3) --> |Delete| b[Batch]
-		b --> |Delete| c[Update Aggregate]
-		
+		b --> |Delete| c[Update Aggregate]	
 ```
 
-Note that while the math is straightforward, the implementation of recursive mean and variance is more complex. Rather than just collecting all of the data into one large database, we need add a data transformation step doesn't return the raw observation. Instead, it that queries the previous estimates of the static and returns an update of the global aggregate statistics. Ideally, for privacy preservation, we would even delete the values prior to the update.
+Note that while the math is straightforward, the implementation of recursive mean and variance is more complex. Rather than just collecting all of the data into one large database, we need to add a data transformation step doesn't return the raw observation. Instead, it queries the previous estimates of the statistic and returns an update of the global aggregate statistics. Ideally, for privacy preservation, we would even delete the values prior to the update.
 
 ### Recursive (batch) mean	
 
