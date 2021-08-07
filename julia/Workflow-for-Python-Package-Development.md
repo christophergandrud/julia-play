@@ -2,7 +2,7 @@
 
 ## Why package?
 
-Python Packages allow us to take more full advantage of one of the great features of software: extensibility. It allows us to bundle up code that can be used again and again, often in novel extensions of the original use case. Creating packages also encourage us to write more robust and easy to understand code.  
+Python Packages allow us to take more full advantage of one of the great features of software: extensibility. It allows us to bundle up code that can be used again and again, often in novel extensions of the original use case. Creating packages also encourages us to write more robust and easy to understand code.  
 
 ## Before you Start
 
@@ -33,7 +33,7 @@ It should be easy to write packge documentation. If your package is well defined
 
  Don't forget to **test** your package.  [Test driven development](https://en.wikipedia.org/wiki/Test-driven_development)--where you write and automate the test for the correctness of your code before fully writing the code--enables you to create more robust code that is easier to maintain. It is more robust, because you have tests validating its correctness. It is more maintainable, because changes both to the package and its dependencies are automatically evaluated before deployment. Ideally your tests allow you to "fail fast" in that the tests fail close to the source of problem. This makes the debugging process faster. [pytest](https://docs.pytest.org/en/6.2.x/), as part of CI/CD pipeline allows you to automatically test your packages.
 
-Take advantage of version control and CI/CD tools, [TO COMPLETE]
+Take advantage of version control and CI/CD tools such as Git, GitHub, and GitHub actions. These tools allow you to develop new features while being confident that they only make it to the "release" version of the package once they have passed your tests.
 
 ## Example
 
@@ -225,6 +225,8 @@ Then in the terminal, with the package as your working directory, use the **pyte
 pytest
 ```
 
+Note: all of the test definitions need to begin with `test_`.
+
 #### Code coverage
 
 
@@ -235,7 +237,7 @@ The public GitHub has a really good built in CI/CD platform called [GitHub Actio
 
 #### Branch control and releases
 
-Your package should be in a version control system like GitHub. The *main* branch should be your "protected branch". Develop and test new code in other branches. Only merge code into the *main* branch after it has passed the automated tests and (if it is headed for production) review by a peer. 
+Your package should be in a version control system like GitHub. The *main* branch should be your "protected branch". Develop and test new code in other branches. Only merge code into the *main* branch after it has passed the automated tests and (if it is headed for production) review by a peer. On GitHub you can enforce this discipline with [branch control](https://docs.github.com/en/github/administering-a-repository/defining-the-mergeability-of-pull-requests/managing-a-branch-protection-rule).
 
 Rules of thumb for this process include:
 
