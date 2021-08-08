@@ -95,7 +95,7 @@ There are two nice things about this workflow:
 
 Now that we have an initial package design in mind, let's create the basic file structure that you need for a Python package. 
 
-First create a new directory for your package and commit it to some version control system such as GitHub. My initial file structure for the **batchstats** package looks like this:
+First create a new directory for your package and commit it to some version control system such as GitHub. My initial file structure for the **stats_batch** package looks like this:
 
 ```shell
 stats_batch
@@ -108,6 +108,7 @@ stats_batch
 │   └── mean-var.py
 ├── README.md
 └── setup.py
+└── tests
 ```
 
 The `__init__.py` file is empty. It denotes the directory as a Python package. Use the **setuptools** package to create the `setup.py` file. This file contains key metadata for your package. For example:
@@ -116,14 +117,14 @@ The `__init__.py` file is empty. It denotes the directory as a Python package. U
 from setuptools import setup
 
 setup(
-    name='batchstats',
+    name='stats_batch',
     version='0.0.9000',    
     description='Find statistics (e.g. mean and variance) using batch updating algorithms',
     url='https://github.com/christophergandrud/batch-stats',
     author='Christopher Gandrud',
     author_email='christopher.gandrud@gmail.com',
     license='MIT',
-    packages=['batchstats'],
+    packages=['stats_batch'],
     install_requires=['numpy',
                       'scipy'                   
                       ],
@@ -188,6 +189,10 @@ The function documentation is included in the function definition and denoted by
 
 There are multiple style guides for Python docstrings. One to recommend is the [numpy/scipy style guide](https://numpydoc.readthedocs.io/en/latest/format.html).
 
+### Changelog
+
+Each time you make a release of your package, you should document the changes in a CHANGELOG. 
+
 ### Coding 
 
 
@@ -244,7 +249,30 @@ Rules of thumb for this process include:
 - Commit and merge often. Avoid trying to work on and then merge in very large changes. This is highly likely to create bugs that are hard to debugg.
 - Changes should come with new tests. If it is a new feature, you need a test for the new feature. If it is a fix for a bug that was not caught in previous automated tests, add a new test to cover this bug.
 
+### Distributing
 
+Once you have your package built and tested, you can distribute it through the [PyPI](https://pypi.org/) package index. The [official tutorial](https://packaging.python.org/tutorials/packaging-projects/#generating-distribution-archives) has easy to follow instructions for how to do this. It is a good idea to try it out on the [test index](https://test.pypi.org/) first.
+
+Assuming:
+
+- your package pasts its tests
+
+- you have a (test) PyPI account and API token
+
+- have the **build** and **twine** packages installed,
+
+  follow a workflow like this in your terminal:
+
+```shell
+# Build package
+python3 -m build
+
+# Upload built package to testpypi
+python3 -m twine upload --repository testpypi dist/*
+
+```
+
+If successful, you should be given a URL for the packages directory.
 
 [^doc-red-flag]: This is one of the red flags highlighted in Ousterhout's (2018) highly recommended "A Philosophy of Software Design".  ↩
 [^types]: See [here](https://docs.python.org/3/library/stdtypes.html) for a full list of Python's built in types.
