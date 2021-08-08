@@ -193,9 +193,9 @@ There are multiple style guides for Python docstrings. One to recommend is the [
 
 Each time you make a release of your package, you should document the changes in a CHANGELOG. 
 
-### Coding 
+### 
 
-
+### Testing
 
 #### Type checking
 
@@ -210,9 +210,9 @@ Notice that we defined the types of the arguments--`int`--and what the function 
 - making how the function works in terms of inputs and outputs more obvious. This enables users to more easily extend the function to new use cases.
 - catches problems sooner. A major source of user error is passing the data to a function that it does not know how to handle. Type checking helps catch this immediately.  
 
-### Testing
+#### Test files
 
- As you develop your package, build the suite of automated tests for it. To do this, create a directory called *tests*. In this directory, place Python files that begin with `test`. For example, here is `test_batch_mean.py`
+As you develop your package, build the suite of automated tests for it. To do this, create a directory called *tests*. In this directory, place Python files that begin with `test`. For example, here is `test_batch_mean.py`
 
 ```python
 import stats_batch as sb
@@ -234,7 +234,29 @@ Note: all of the test definitions need to begin with `test_`.
 
 #### Code coverage
 
+You can get an overview of how much of your code is covered by tests with the **coverage** package. Of course, just because a piece of code has some test run against it, does not mean that it is run against a good test to ensure that it is robust to future changes. However, code coverage does provide a quick indication of where there might be blind spots in your current set of tests. 
 
+Here is an example of how to use **coverage** in your terminal:
+
+```bash
+# Run tests and record code coverage
+coverage run -m pytest
+
+# Show report
+coverage report
+```
+
+You can also create a badge to report your code coverage, for example in the README, with the **coverage-bage** package. In the terminal:
+
+```bash
+coverage-badge -o coverage.svg -f
+```
+
+Then in your README add: 
+
+```markdown
+![code-coverage](coverage.svg)
+```
 
 ### CI/CD 
 
@@ -273,6 +295,8 @@ python3 -m twine upload --repository testpypi dist/*
 ```
 
 If successful, you should be given a URL for the packages directory.
+
+You could also include the build and publish process as part of your CI/CD pipeline. For more information see [here](https://github.com/pypa/gh-action-pypi-publish). 
 
 [^doc-red-flag]: This is one of the red flags highlighted in Ousterhout's (2018) highly recommended "A Philosophy of Software Design".  ↩
 [^types]: See [here](https://docs.python.org/3/library/stdtypes.html) for a full list of Python's built in types.
